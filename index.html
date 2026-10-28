@@ -1,198 +1,116 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>剩余电量监控 · 大厅</title>
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大厅 · 剩余电量监控</title>
+<script src="https://fastly.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh; padding: 24px; color: #2c3e50;
-  }
-  .wrap { max-width: 1100px; margin: 0 auto; }
-  .header {
-    background: rgba(255,255,255,0.95); border-radius: 16px; padding: 24px 28px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.15); margin-bottom: 20px;
-  }
-  .header h1 { font-size: 20px; color: #444; margin-bottom: 4px; }
-  .header .sub { color: #888; font-size: 13px; }
-  .row { display: flex; gap: 20px; flex-wrap: wrap; }
-  .card {
-    background: rgba(255,255,255,0.95); border-radius: 16px; padding: 22px 24px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.15); margin-bottom: 20px;
-  }
-  .stat { flex: 1; min-width: 220px; text-align: center; }
-  .stat .label { color: #888; font-size: 13px; margin-bottom: 8px; }
-  .stat .value { font-size: 42px; font-weight: 700; color: #667eea; line-height: 1.1; }
-  .stat .unit { font-size: 16px; color: #aaa; margin-left: 4px; font-weight: 400; }
-  .stat .updated { color: #999; font-size: 12px; margin-top: 8px; }
-  .controls { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 14px; justify-content: center; align-items: center; }
-  .controls label { font-size: 14px; color: #555; margin-right: 6px; }
-  .controls select {
-    padding: 8px 14px; border: 1px solid #ddd; border-radius: 8px;
-    font-size: 14px; background: #fff; cursor: pointer; outline: none;
-  }
-  #chart { width: 100%; height: 380px; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { padding: 10px 12px; text-align: center; border-bottom: 1px solid #f0f0f0; }
-  th { background: #f8f9fc; color: #667eea; font-weight: 600; }
-  tr:hover td { background: #fafbff; }
-  .table-wrap { max-height: 380px; overflow-y: auto; }
-  .empty { text-align: center; color: #aaa; padding: 40px; }
-  .badge { display:inline-block; background:#eef2ff; color:#667eea; padding:2px 10px; border-radius:10px; font-size:12px; margin-left:8px;}
-</style>
-</head>
-<body>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:20px 16px;color:#333}
+.wrap{max-width:900px;margin:0 auto}
+.card{background:rgba(255,255,255,.95);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 8px 32px rgba(0,0,0,.1)}
+h1{font-size:20px;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.sub{font-size:12px;color:#888;margin-bottom:16px}
+.top{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:600px){.top{grid-template-columns:1fr}}
+.kpi{text-align:center;padding:20px}
+.kpi .l{font-size:13px;color:#888;margin-bottom:8px}
+.kpi .v{font-size:42px;font-weight:700;color:#667eea}
+.kpi .u{font-size:16px;color:#999;font-weight:400}
+.kpi .t{font-size:12px;color:#aaa;margin-top:8px}
+.datebox{display:flex;align-items:center;justify-content:center;gap:12px;padding:20px}
+.datebox select{padding:8px 16px;border-radius:8px;border:1px solid #ddd;font-size:14px;background:#fff}
+h2{font-size:15px;margin-bottom:12px;color:#555}
+#chart{width:100%;height:320px}
+.tw{overflow-x:auto;max-height:300px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:9px 12px;text-align:right;border-bottom:1px solid #eee}
+th:first-child,td:first-child{text-align:left}
+th{color:#888;font-weight:500;position:sticky;top:0;background:#fafafa}
+.up{color:#e74c3c}.down{color:#27ae60}
+.empty{text-align:center;color:#aaa;padding:30px}
+</style></head><body>
 <div class="wrap">
-  <div class="header">
-    <h1>⚡ 剩余电量监控 <span class="badge">GitHub Actions 云端采集</span></h1>
-    <div class="sub">表名称：大厅 &nbsp;|&nbsp; 表号：18501681136 &nbsp;|&nbsp; 采集频率：每 30 分钟（整点 / 半点，北京时间）</div>
-  </div>
-
-  <div class="row">
-    <div class="card stat">
-      <div class="label">当前剩余电量</div>
-      <div><span class="value" id="curVal">--</span><span class="unit">kWh</span></div>
-      <div class="updated" id="curTime">加载中...</div>
-    </div>
-    <div class="card controls">
-      <div>
-        <label>选择日期：</label>
-        <select id="dateSel"></select>
-      </div>
-      <div style="font-size:12px;color:#999;">
-        数据由 GitHub Actions 每 30 分钟自动抓取并提交回本仓库
-      </div>
-    </div>
-  </div>
-
   <div class="card">
-    <div style="font-size:15px;color:#444;margin-bottom:12px;font-weight:600;">📈 当日电量曲线</div>
+    <h1>⚡ 剩余电量监控</h1>
+    <div class="sub">表名称: 大厅 ｜ 表号: 18501681136 ｜ 采集频率: 每 10 分钟</div>
+  </div>
+  <div class="top">
+    <div class="card kpi">
+      <div class="l">当前剩余电量</div>
+      <div><span class="v" id="curV">--</span><span class="u"> kWh</span></div>
+      <div class="t" id="curT">等待首次采集</div>
+    </div>
+    <div class="card datebox">
+      <div>选择日期: <select id="dateSel" onchange="render()"></select></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>📈 当日电量曲线</h2>
     <div id="chart"></div>
   </div>
-
   <div class="card">
-    <div style="font-size:15px;color:#444;margin-bottom:12px;font-weight:600;">📋 当日采集记录</div>
-    <div class="table-wrap">
+    <h2>📋 当日采集记录</h2>
+    <div class="tw">
       <table>
         <thead><tr><th>#</th><th>采集时间</th><th>剩余电量 (kWh)</th><th>较上次变化</th></tr></thead>
-        <tbody id="tbody"></tbody>
+        <tbody id="tb"></tbody>
       </table>
-      <div class="empty" id="emptyTip" style="display:none;">当日暂无数据</div>
     </div>
   </div>
 </div>
-
 <script>
-const chart = echarts.init(document.getElementById('chart'));
-let ALL = [];
-
-function fmtDelta(d) {
-  if (d === null || d === undefined) return '-';
-  if (d > 0) return '+' + d.toFixed(2);
-  if (d < 0) return d.toFixed(2);
-  return '0.00';
-}
-
-function groupByDate(rows) {
-  const map = {};
-  rows.forEach(r => {
-    const d = r.ts.substring(0, 10);
-    (map[d] = map[d] || []).push(r);
-  });
-  return map;
-}
-
-async function loadAll() {
-  try {
-    const r = await fetch('data.json?t=' + Date.now());
-    ALL = await r.json();
-  } catch (e) {
-    ALL = [];
-  }
+let allData=[],chart=echarts.init(document.getElementById('chart'));
+async function load(){
+  try{
+    const r=await fetch('data/readings.csv?_='+Date.now());
+    const txt=await r.text();const lines=txt.trim().split('\n');allData=[];
+    for(let i=1;i<lines.length;i++){
+      const p=lines[i].split(',');
+      if(p[2])allData.push({ts:parseInt(p[0]),text:p[1].trim(),v:parseFloat(p[2])});
+    }
+    allData.sort((a,b)=>a.ts-b.ts);
+  }catch(e){}
+  const dates=[...new Set(allData.map(d=>d.text.slice(0,10)))];
+  const sel=document.getElementById('dateSel');
+  sel.innerHTML=dates.map(d=>`<option value="${d}">${d}</option>`).join('');
+  if(dates.length)sel.value=dates[dates.length-1];
   render();
 }
-
-function render() {
-  const latest = ALL[ALL.length - 1];
-  if (latest) {
-    document.getElementById('curVal').textContent = Number(latest.battery).toFixed(2);
-    document.getElementById('curTime').textContent = '更新于 ' + latest.ts;
-  } else {
-    document.getElementById('curTime').textContent = '暂无数据（等待首次采集）';
+function render(){
+  const date=document.getElementById('dateSel').value;
+  const day=allData.filter(d=>d.text.slice(0,10)===date);
+  if(!day.length){
+    document.getElementById('curV').textContent='--';
+    document.getElementById('curT').textContent='暂无数据';
+    document.getElementById('tb').innerHTML='<tr><td colspan="4" class="empty">当日暂无数据</td></tr>';
+    chart.clear();return;
   }
-
-  const map = groupByDate(ALL);
-  const dates = Object.keys(map).sort().reverse();
-  const sel = document.getElementById('dateSel');
-  const prev = sel.value;
-  sel.innerHTML = '';
-  dates.forEach(d => {
-    const opt = document.createElement('option');
-    opt.value = d;
-    opt.textContent = d + '（' + map[d].length + '条）';
-    sel.appendChild(opt);
+  const last=day[day.length-1];
+  document.getElementById('curV').textContent=last.v.toFixed(2);
+  document.getElementById('curT').textContent='更新于 '+last.text;
+  let html='';
+  day.forEach((r,i)=>{
+    let diff='';
+    if(i>0){const d=r.v-day[i-1].v;
+      diff=d<0?`<span class="down">↓ ${Math.abs(d).toFixed(2)}</span>`:d>0?`<span class="up">↑ ${d.toFixed(2)}</span>`:'—';}
+    html+=`<tr><td>${i+1}</td><td>${r.text.slice(11)}</td><td>${r.v.toFixed(2)}</td><td>${diff||'—'}</td></tr>`;
   });
-  if (dates.length === 0) {
-    sel.innerHTML = '<option>（暂无数据）</option>';
-    chart.clear();
-    document.getElementById('tbody').innerHTML = '';
-    document.getElementById('emptyTip').style.display = 'block';
-    return;
-  }
-  if (prev && dates.includes(prev)) sel.value = prev;
-  renderDay(map[sel.value]);
-}
-
-function renderDay(data) {
-  const times = data.map(r => r.ts.substring(11, 16));
-  const vals = data.map(r => r.battery);
+  document.getElementById('tb').innerHTML=html;
   chart.setOption({
-    tooltip: { trigger: 'axis', valueFormatter: v => v + ' kWh' },
-    grid: { left: 50, right: 30, top: 30, bottom: 40 },
-    xAxis: { type: 'category', data: times, boundaryGap: false, axisLine: { lineStyle: { color: '#ccc' } } },
-    yAxis: { type: 'value', name: 'kWh', scale: true, splitLine: { lineStyle: { color: '#f0f0f0' } } },
-    series: [{
-      name: '剩余电量', type: 'line', smooth: true, data: vals,
-      symbol: 'circle', symbolSize: 7,
-      lineStyle: { width: 3, color: '#667eea' },
-      itemStyle: { color: '#667eea' },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0,0,0,1,[
-          {offset:0, color:'rgba(102,126,234,0.45)'},
-          {offset:1, color:'rgba(102,126,234,0.02)'}
-        ])
-      }
-    }]
-  }, true);
-
-  const tb = document.getElementById('tbody');
-  tb.innerHTML = '';
-  document.getElementById('emptyTip').style.display = data.length ? 'none' : 'block';
-  let prev = null;
-  data.forEach((r, i) => {
-    const delta = prev === null ? null : r.battery - prev;
-    prev = r.battery;
-    const tr = document.createElement('tr');
-    tr.innerHTML = '<td>' + (i+1) + '</td><td>' + r.ts + '</td>' +
-                   '<td>' + Number(r.battery).toFixed(2) + '</td>' +
-                   '<td>' + fmtDelta(delta) + '</td>';
-    tb.appendChild(tr);
-  });
+    grid:{left:55,right:20,top:20,bottom:30},
+    tooltip:{trigger:'axis',formatter:p=>p[0].axisValue+'<br/>电量: <b>'+p[0].data.toFixed(2)+'</b> kWh'},
+    xAxis:{type:'category',data:day.map(d=>d.text.slice(11,16)),axisLabel:{color:'#888'}},
+    yAxis:{type:'value',scale:true,axisLabel:{color:'#888'},splitLine:{lineStyle:{color:'#eee'}}},
+    series:[{type:'line',data:day.map(d=>d.v),smooth:true,symbol:'circle',symbolSize:6,
+      lineStyle:{color:'#667eea',width:2.5},itemStyle:{color:'#667eea'},
+      areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[
+        {offset:0,color:'rgba(102,126,234,.35)'},{offset:1,color:'rgba(102,126,234,0)'}])}}]
+  },true);
 }
-
-document.getElementById('dateSel').addEventListener('change', () => {
-  const map = groupByDate(ALL);
-  renderDay(map[document.getElementById('dateSel').value] || []);
-});
-window.addEventListener('resize', () => chart.resize());
-
-loadAll();
-// 每 60 秒重新拉一次 data.json，看板自动更新
-setInterval(loadAll, 60000);
+window.addEventListener('resize',()=>chart.resize());
+load();setInterval(load,60000);
 </script>
-</body>
-</html>
+</body></html>
