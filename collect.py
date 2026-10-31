@@ -5,15 +5,13 @@ import os, re, sys, time, csv, urllib.request, urllib.parse, datetime
 TARGET = "http://www.wap.cnyiot.com/nat/pay.aspx?mid=18501681136"
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
-PROXIES = [
-    lambda u: "https://api.allorigins.win/raw?url=" + urllib.parse.quote(u, safe=''),
-    lambda u: "https://corsproxy.io/?url=" + urllib.parse.quote(u, safe=''),
-    lambda u: u,
-]
-
 def fetch_power():
-    for proxy_fn in PROXIES:
-        url = proxy_fn(TARGET)
+    urls = [
+        "https://api.allorigins.win/raw?url=" + urllib.parse.quote(TARGET, safe=''),
+        "https://corsproxy.io/?url=" + urllib.parse.quote(TARGET, safe=''),
+        TARGET,
+    ]
+    for url in urls:
         for attempt in range(2):
             try:
                 req = urllib.request.Request(url, headers={
